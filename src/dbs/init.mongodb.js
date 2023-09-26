@@ -20,7 +20,9 @@ class Database {
       mongoose.set('debug', { color: true})
     }
 
-    mongoose.connect( connectString).then( _=> {
+    mongoose.connect( connectString, {
+      maxPoolSize: 50
+    }).then( _=> {
       console.log('Connected Mongodb Success PRO', countConnect())
     })
     .catch(err => console.log(`Error Connect!`))

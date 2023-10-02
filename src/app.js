@@ -14,16 +14,11 @@ app.use(compression()) // middlewares sẽ cố gắng nén nội dung phản h�
 
 // init db
 require('./dbs/init.mongodb')
-const { checkOverLoad } = require('./helpers/check.connect')
-checkOverLoad()
+// const { checkOverLoad } = require('./helpers/check.connect')
+// checkOverLoad()
 // init routes
-app.get('/', (req, res, next) => {
-  const strCompress = 'Hello tipsJS'
-  return res.status(200).json({
-    message: 'Welcome Fantipjs!',
-    // metadata: strCompress.repeat(10000)
-  })
-})
+app.use('', require('./routes'))
+
 // handling error
 
 module.exports = app

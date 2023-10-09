@@ -2,7 +2,10 @@
 
 const shopModel = require("../models/shop.model")
 const bcrypt = require("bcrypt")
-const crypto = require("crypto")
+const crypto = require("node:crypto")
+const KeyTokenService = require("./keyToken.service")
+const { createTokenPair } = require("../auth/authUtils")
+const { getInfoData } = require("../utils")
 
 const RoleShop = {
   SHOP: 'SHOP',
@@ -13,12 +16,12 @@ const RoleShop = {
 
 class AccessService {
 
-  static signUp = async ({name, email, password}) => {
+  static signUp = async ({ name, email, password }) => {
     try {
       // step1: check email exists??
 
       const holderShop = await shopModel.findOne({ email }).lean()
-      if(holderShop){
+      if (holderShop) {
         return {
           code: 'xxxx',
           message: 'Shop already registered!'
@@ -31,15 +34,47 @@ class AccessService {
       })
 
       if (newShop) {
-        // created privateKey, publicKey => privateKey de sign token, publicKey de verify token
-        const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
-          modulusLength: 4096
+
+        const privateKey = crypto.randomBytes(64).toString('hex');
+        const publicKey = crypto.randomBytes(64).toString('hex');
+        //Public key CryptoGraphy Standards !
+
+        console.log({ privateKey, publicKey }) //save collection keystore
+
+        const keyStore = await KeyTokenService.createKeyToken({
+          userId: newShop._id,
+          publicKey,
+          privateKey
         })
 
-        console.log({ private , publicKey }) //save collection keystore
+        if (!keyStore) {
+          return {
+            code: 'xxxx',
+            message: 'keyStore error'
+          }
+        }
+
+        
+        // created token pair
+        const tokens = await createTokenPair({ userId: newShop._id, email }, publicKey, privateKey)
+        console.log(`Created Token Success::`, tokens);
+
+        return {
+          code: 201,
+          metadata: {
+            shop: getInfoData({ fields: ['_id', 'name', 'email'], object: newShop}),
+            tokens
+          }
+        }
+        // const tokens = await 
       }
 
+      return {
+        code: 200,
+        metadata: null
+      }
     } catch (error) {
+      console.log(error);
       return {
         code: 'xxx',
         message: error.message,

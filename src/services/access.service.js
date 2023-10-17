@@ -18,7 +18,37 @@ const RoleShop = {
   ADMIN: 'ADMIN'
 }
 
-class AccessService { 
+class AccessService {
+  
+  static handlerRefreshTokenV2 = async ( {keyStore, user, refreshToken} ) => {
+    const { userId, email } = user;
+    console.log('keyStore', keyStore);
+    if(keyStore.refreshTokensUsed.includes(refreshToken)){
+      await KeyTokenService.deleteKeyById(userId)
+      throw new ForbiddenError('Something wrong happened !! Please login again !')
+    }
+
+    if(keyStore.refreshToken !== refreshToken) throw new AuthFailureError(' Shop not registered')
+
+    const foundShop = await findByEmail( {email} )
+    if(!foundShop) throw new AuthFailureError(' Shop not registered 2')
+    // create 1 cap moi
+    const tokens = await createTokenPair({ userId, email }, keyStore.publicKey, keyStore.privateKey)
+    //update token 
+    await keyStore.updateOne({
+      $set: {
+        refreshToken: tokens.refreshToken
+      },
+      $addToSet: {
+        refreshTokensUsed: refreshToken //da duoc su dung de lay token moi roi
+      }
+    })
+
+    return {
+      user,
+      tokens
+    }
+  }
 
   /*
     Check this token used?
@@ -34,7 +64,7 @@ class AccessService {
       console.log('[1]--', { userId, email });
       //xoa tat ca token trong keyStore
       await KeyTokenService.deleteKeyById(userId)
-      throw new ForbiddenError('Something wrong happend !! Please login again !')
+      throw new ForbiddenError('Something wrong happened !! Please login again !')
     }
 
     // NO, qua ngon

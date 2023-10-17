@@ -10,7 +10,8 @@ const { findByUserId } = require('../services/keyToken.service')
 const HEADER = {
   API_KEY: 'x-api-key',
   CLIENT_ID: 'x-client-id',
-  AUTHORIZATION: 'authorization'
+  AUTHORIZATION: 'authorization',
+  REFRESH_TOKEN: 'refresh-token'
 }
 
 const createTokenPair = async ( payload, publicKey, privateKey ) => {
@@ -70,6 +71,51 @@ const authentication = asyncHandler( async (req, res, next) => { //cho nay` ko c
   }
 })
 
+const authenticationV2 = asyncHandler( async (req, res, next) => { //cho nay` ko can try catch vi da ca asyncHanlder
+  /*
+    1 - Check userId missing???
+    2 - get accessToken
+    3 - Verify Token
+    4 - Check user in bds?
+    5 - Check keyStore with this userId?
+    6 - Ok all => return next()
+  */
+
+  const userId = req.headers[HEADER.CLIENT_ID]
+  if(!userId) throw new AuthFailureError('Invalid Request')
+
+  //2
+  const keyStore = await findByUserId( userId )
+  if(!keyStore) throw new NotFoundError('Not found keyStore')
+
+  //3 
+  if(req.headers[HEADER.REFRESH_TOKEN]){
+    try {
+      const refreshToken = req.headers[HEADER.REFRESH_TOKEN]
+      const decodeUser = JWT.verify(refreshToken, keyStore.privateKey)
+      if(userId !== decodeUser.userId) throw new AuthFailureError('Invalid userId')
+      req.keyStore = keyStore
+      req.user = decodeUser
+      req.refreshToken = refreshToken
+      return next()
+    } catch (error) {
+      throw error
+    }
+  }
+
+  const accessToken = req.headers[HEADER.AUTHORIZATION]
+  if(!accessToken) throw new AuthFailureError('Invalid Request')
+
+  try {
+    const decodeUser = JWT.verify(accessToken, keyStore.publicKey)
+    if(userId !== decodeUser.userId) throw new AuthFailureError('Invalid userId')
+    req.keyStore = keyStore
+    return next()
+  } catch (error) {
+    throw error
+  }
+})
+
 const verifyJWT = async (token, keySecret) => {
   return await JWT.verify( token, keySecret)
 }
@@ -77,5 +123,6 @@ const verifyJWT = async (token, keySecret) => {
 module.exports = {
   createTokenPair,
   verifyJWT,
-  authentication
+  authentication,
+  authenticationV2
 }

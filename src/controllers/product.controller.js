@@ -58,6 +58,7 @@ class ProductController {
         product_shop: req.user.userId
       })
     }).send(res)
+
   }
 
 
@@ -68,6 +69,7 @@ class ProductController {
         product_shop: req.user.userId
       })
     }).send(res)
+
   }
 
   getListSearchProduct = async (req, res, next) => {
@@ -75,7 +77,25 @@ class ProductController {
       message: 'Get list getListSearchProduct success!',
       metadata: await ProductServiceV2.getListSearchProduct(req.params)
     }).send(res)
+
   }
+
+  findAllProducts = async (req, res, next) => {
+    new SuccessResponse({
+      message: 'Get list findAllProducts success!',
+      metadata: await ProductServiceV2.findAllProducts(req.query)
+    }).send(res)
+  }
+
+  findProduct = async (req, res, next) => {
+    new SuccessResponse({
+      message: 'Get list findProduct success!',
+      metadata: await ProductServiceV2.findProduct({
+        product_id: req.params.product_id
+      })
+    }).send(res)
+  }
+
   // END QUERY//
 }
 
